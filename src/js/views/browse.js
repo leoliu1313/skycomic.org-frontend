@@ -362,11 +362,11 @@ define([
 					window.imageCache.add(url, hash);
 				};
 
-				for (var i = 0, p = {cid:cid, page:page}; (p = self.prev_page(p)) && i < prev_n; i++) {
+				for (var i = 0, p = {cid:cid, page:page}; (p = self.next_page(p)) && i < next_n; i++) {
 					check_n_appand(p.cid, p.page);
 				}
 
-				for (var i = 0, p = {cid:cid, page:page}; (p = self.next_page(p)) && i < next_n; i++) {
+				for (var i = 0, p = {cid:cid, page:page}; (p = self.prev_page(p)) && i < prev_n; i++) {
 					check_n_appand(p.cid, p.page);
 				}
 			},

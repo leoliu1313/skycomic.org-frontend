@@ -1,36 +1,50 @@
 define(['jquery'], function () {
 window.imageCache = (function () {
-	var pub = {},
-		els = [
-			$('#image-cache'),
-			$('#image-cache2'),
-		],
-		el = els[0],
-		elNumber = 0,
-		limit = 50, // limit of single caching slot
-		capacity = 0,
-		items = {};
+	var cacheContainer = document.createElement('div');
+	cacheContainer.style.display = 'none';
+	document.body.appendChild(cacheContainer);
 
-	pub.add = function (url, hash) {
-		if (!hash) {
-			hash = url;
-		}
-		if (!items[hash]) {
-			if (capacity > limit) {
-				// switch to next cache
-				elNumber = 1 - elNumber;
-				el = els[elNumber];
-				// empty it first
-				el.empty();
-				capacity = 0;
+	var promise = Promise.resolve(),
+		cacheInfo = {},
+		imgs = [],
+		maxChildren = 50;
+
+	var fetchPromise = function (url) {
+		return new Promise(function (resolve, reject) {
+			var img = document.createElement('img');
+			img.onerror = function () {
+				cacheContainer.removeChild(img);
+				imgs = imgs.splice(imgs.indexOf(img), 1);
+
+				cacheInfo[url].tryCount --;
+				if (cacheInfo[url].tryCount <= 0) {
+					resolve();
+				} else {
+					resolve(fetchPromise(url));
+				}
+			};
+			img.onload = resolve;
+			img.src = url;
+
+			cacheContainer.appendChild(img);
+			imgs.push(img);
+			if (imgs.length > maxChildren) {
+				cacheContainer.removeChild(imgs.shift());
 			}
-			el.append('<img src="'+ url +'" />');
-			items[hash] = 1;
-			capacity++;
-		}
-		return pub;
+		});
 	};
 
-	return pub;
+	return {
+		add: function (url) {
+			if (!!cacheInfo[url]) {
+				return ;
+			}
+
+			cacheInfo[url] = {
+				tryCount: 4
+			};
+			return fetchPromise(url);
+		}
+	};
 })();
 });
