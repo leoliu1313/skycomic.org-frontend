@@ -23,15 +23,16 @@ define([
 				scoll: 10, // 放大倍率
 				width: 0,
 				height: 0
-			};// min = 1 max = 19
+			},// min = 1 max = 19
+			renderTask = null;
 
 		els.page_max = $('#comic-page-max');
 		els.page_input = $('#comic-page-input');
-		
+
 		var AppView = Backbone.View.extend({
 			el: $("#real-content"),
 			header_menu: $("#header-menu"),
-			
+
 			BrowseT: _.template(BrowseT),
 			BrowseEndT: _.template(BrowseEndT),
 
@@ -96,20 +97,18 @@ define([
 				// if not browse, than do leave things.
 				if (nextpage != 'browse') {
 					$(document.body).removeClass('browsing');
-					// $(document.body).attr('style', '');
-					// $('#container').attr('style', '');
 					this.header_menu.show();
 					CQ.clear();
 				}
 				$('#Modal').modal('hide');
 			},
-			
+
 			// for comic_queue
 			setParam: function (param) {
 				cid = param.cid;
 				page = param.page;
 			},
-			
+
 			render: function(_cid, _page) {
 				var self = this;
 				cid = _cid;
@@ -153,7 +152,7 @@ define([
 			init_browse: function () {
 				var self = this;
 				// one column layout
-				Layout.one();	
+				Layout.one();
 				// render browse html
 				this.$el.html(self.BrowseT());
 				els.img = $('#image');
@@ -198,7 +197,7 @@ define([
 					}
 				});
 			},
-			
+
 			// each time rendering data
 			render_data: function () {
 				var self = this;
@@ -218,7 +217,7 @@ define([
 				this.render_cache();
 				img_data.width = GetImageWidth(els.img.get(0));
 				img_data.height = GetImageHeight(els.img.get(0));
-				
+
 				// image scaleing
 				if (img_data.scoll != 10)
 					self.scale_img_action();
@@ -229,9 +228,9 @@ define([
 				// comment rendering
 				if (cid != last_cid) {
 					window.Comments = comments();
-					window.Comments.render(CQ.queue[cid].tid, cid, true);	
+					window.Comments.render(CQ.queue[cid].tid, cid, true);
 					// set global tid for adword
-					window.TID = CQ.queue[cid].tid;		
+					window.TID = CQ.queue[cid].tid;
 
 					els.page_input.attr('max', CQ.queue[cid].pages);
 					els.page_max.text(CQ.queue[cid].pages);
@@ -240,7 +239,7 @@ define([
 
 				window.changeTitle('《'+ CQ.queue[cid].title + '》' + CQ.queue[cid].name + '(' + page + ')');
 			},
-			
+
 			scale_img: function (event) {
 				switch (event) {
 					case '+':
@@ -258,23 +257,30 @@ define([
 				}
 				this.scale_img_action();
 			},
-			
+
 			scale_img_action: function () {
 				els.img.get(0).width = img_data.width*(10-img_data.scoll)*0.1 + img_data.width;
 			},
-			
+
 			render_img: function () {
+				if (renderTask) {
+					clearTimeout(renderTask);
+					renderTask = null;
+				}
 				var el = els.img;
 				el.hide()
 					.one('load', function() {
 						el.show();
 					})
+					.one('error', function () {
+						renderTask = setTimeout(this.render_img.bind(this), 500);
+					}.bind(this))
 					.attr('src', uri + cid +'/' + page)
 				if (el.get(0).complete) {
 					el.trigger('load');
 				};
 			},
-			
+
 			prev_page: function (p) {
 				if ( p.page > 1 ) {
 					return {cid: p.cid, page: p.page - 1};
@@ -286,7 +292,7 @@ define([
 					}
 				}
 			},
-			
+
 			next_page: function (p) {
 				if ( p.page < CQ.queue[cid].pages ) {
 					return {cid: p.cid, page: p.page + 1};
@@ -333,7 +339,7 @@ define([
 									} else {
 										// console.log('browse/' + data.chapters[i + 1].cid + '/1');
 										app_router.navigate('/browse/' + data.chapters[i + 1].cid + '/1', {trigger: true});
-									}	
+									}
 								} catch (e) {
 									err('已經是最' + (last ? '後' : '前') + '面的一話囉!');
 									$('#Modal').modal('hide');
@@ -344,27 +350,27 @@ define([
 					});
 				});
 			},
-			
+
 			render_cache: function () {
 				var self = this,
 					prev_n = cache_pages[0],
 					next_n = cache_pages[1];
-				
+
 				var check_n_appand = function (_cid, _page) {
 					var url = uri + _cid +'/'+ _page,
 						hash = _cid + ":" + _page;
 					window.imageCache.add(url, hash);
 				};
-				
+
 				for (var i = 0, p = {cid:cid, page:page}; (p = self.prev_page(p)) && i < prev_n; i++) {
 					check_n_appand(p.cid, p.page);
 				}
-				
+
 				for (var i = 0, p = {cid:cid, page:page}; (p = self.next_page(p)) && i < next_n; i++) {
 					check_n_appand(p.cid, p.page);
 				}
 			},
-			
+
 			change_page: function (_page) {
 				_page = parseInt(_page, 10);
 				if ( _page == 0 ) {
@@ -387,6 +393,6 @@ define([
 		});
 		return new AppView();
 	};
-	
+
 	return View;
 });
