@@ -268,17 +268,23 @@ define([
 					renderTask = null;
 				}
 				var el = els.img;
-				el.hide()
-					.one('load', function() {
-						el.show();
-					})
-					.one('error', function () {
-						renderTask = setTimeout(this.render_img.bind(this), 500);
-					}.bind(this))
-					.attr('src', uri + cid +'/' + page)
-				if (el.get(0).complete) {
-					el.trigger('load');
-				};
+				$.ajax({
+					url: uri + cid +'/' + page + '/1',
+					type: 'get',
+					success: function (res) {
+						el.hide()
+							.one('load', function() {
+								el.show();
+							})
+							.one('error', function () {
+								renderTask = setTimeout(this.render_img.bind(this), 500);
+							}.bind(this))
+							.attr('src', res.data.url)
+						if (el.get(0).complete) {
+							el.trigger('load');
+						};
+					}
+				});
 			},
 
 			prev_page: function (p) {
@@ -357,9 +363,15 @@ define([
 					next_n = cache_pages[1];
 
 				var check_n_appand = function (_cid, _page) {
-					var url = uri + _cid +'/'+ _page,
+					var url = uri + _cid +'/'+ _page + '/1',
 						hash = _cid + ":" + _page;
-					window.imageCache.add(url, hash);
+					$.ajax({
+						url: url,
+						type: 'get',
+						success: function (res) {
+							window.imageCache.add(res.data.url, hash);
+						}
+					});
 				};
 
 				for (var i = 0, p = {cid:cid, page:page}; (p = self.next_page(p)) && i < next_n; i++) {
